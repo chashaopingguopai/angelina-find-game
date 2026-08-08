@@ -135,6 +135,14 @@ img {
   font-weight: 700;
 }
 
+.infinite-mode-note {
+  margin: 12px 0 0;
+  color: #52748d;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.6;
+}
+
 /* Home */
 .home-page {
   position: relative;
@@ -749,6 +757,60 @@ img {
   letter-spacing: 0.1em;
 }
 
+.board-heading-meta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.grace-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 10px;
+  border: 1px solid currentColor;
+  border-radius: 12px;
+  letter-spacing: normal;
+  line-height: 1.15;
+}
+
+.grace-status > span:first-child {
+  font-size: 1rem;
+}
+
+.grace-status > span:last-child {
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.grace-status strong {
+  font-size: 0.65rem;
+}
+
+.grace-status small {
+  opacity: 0.72;
+  font-size: 0.56rem;
+  font-weight: 700;
+}
+
+.grace-status--available {
+  color: #187d74;
+  background: #e6fff7;
+}
+
+.grace-status--used {
+  color: #b66a11;
+  background: #fff5d8;
+}
+
+.grace-status--expired {
+  color: #7a8791;
+  background: #f1f5f7;
+}
+
 .game-board {
   display: grid;
   grid-template-columns: repeat(var(--grid-columns), minmax(0, 1fr));
@@ -981,6 +1043,20 @@ img {
   color: #4e7189;
   border-color: rgba(66, 137, 184, 0.2);
   background: linear-gradient(135deg, #f3fbff, #fffaf0);
+}
+
+.infinite-result-badges {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 20px 0 14px;
+}
+
+.infinite-result-badges .level-badge,
+.infinite-result-badges .rank-badge {
+  margin: 0;
 }
 
 .result-actions {
@@ -1226,6 +1302,21 @@ img {
   .hero-visual {
     width: 78%;
     margin-top: 10px;
+  }
+
+  .board-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .board-heading-meta {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .grace-status {
+    padding: 4px 8px;
   }
 
   .fan-disclaimer {

@@ -2,9 +2,13 @@ export const CARD_COUNTS = [25, 30, 36, 42, 49]
 export const ROUNDS_PER_LEVEL = 3
 export const FINITE_LEVELS = 5
 export const FINITE_TOTAL_ROUNDS = ROUNDS_PER_LEVEL * FINITE_LEVELS
+export const INITIAL_ROUND_SECONDS = 10
+export const MINIMUM_ROUND_SECONDS = 5
+export const MAX_DIFFICULTY_LEVEL = INITIAL_ROUND_SECONDS - MINIMUM_ROUND_SECONDS + 1
+export const INFINITE_GRACE_ROUNDS = ROUNDS_PER_LEVEL * MAX_DIFFICULTY_LEVEL
 
 export function getLevel(score) {
-  return Math.floor(score / 3) + 1
+  return Math.min(Math.floor(score / ROUNDS_PER_LEVEL) + 1, MAX_DIFFICULTY_LEVEL)
 }
 
 export function getCardCount(level) {
@@ -12,7 +16,7 @@ export function getCardCount(level) {
 }
 
 export function getRoundSeconds(level) {
-  return Math.max(10 - (level - 1), 5)
+  return Math.max(INITIAL_ROUND_SECONDS - (level - 1), MINIMUM_ROUND_SECONDS)
 }
 
 export function getTimeRank(elapsedMs) {
@@ -22,6 +26,18 @@ export function getTimeRank(elapsedMs) {
   if (seconds <= 60) return 'A'
   if (seconds <= 75) return 'B'
   return 'C'
+}
+
+export function getInfiniteRank(score) {
+  if (score >= INFINITE_GRACE_ROUNDS) return 'S'
+  if (score >= (MAX_DIFFICULTY_LEVEL - 1) * ROUNDS_PER_LEVEL) return 'A'
+  if (score >= 2 * ROUNDS_PER_LEVEL) return 'B'
+  return 'C'
+}
+
+export function getInfiniteGraceState(roundNumber, graceUsed) {
+  if (roundNumber > INFINITE_GRACE_ROUNDS) return 'expired'
+  return graceUsed ? 'used' : 'available'
 }
 
 export function formatElapsedTime(elapsedMs) {

@@ -49,6 +49,9 @@ function Home({ onStart }) {
               <span>∞</span> 无限模式
             </button>
           </div>
+          <p className="infinite-mode-note">
+            无尽模式：最高难度的前 3 轮内拥有一次容错保护，第 19 轮起点错即结算。
+          </p>
           <p className="rank-rules">时间评级：S ≤ 45秒 · A ≤ 60秒 · B ≤ 75秒 · C 完成挑战</p>
         </div>
 

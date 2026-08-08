@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import FanDisclaimer from '../components/FanDisclaimer.jsx'
 import GameBoard from '../components/GameBoard.jsx'
+import GraceStatus from '../components/GraceStatus.jsx'
 import Score from '../components/Score.jsx'
 import Timer from '../components/Timer.jsx'
 import { ANGELINA_IMAGES, UI_ASSETS } from '../data/images.js'
@@ -8,6 +9,8 @@ import {
   createRound,
   FINITE_TOTAL_ROUNDS,
   formatElapsedTime,
+  getInfiniteGraceState,
+  getInfiniteRank,
   getLevel,
   getTimeRank,
 } from '../utils/game.js'
@@ -17,6 +20,13 @@ const RANK_COMMENTS = {
   A: '只让几颗星星多闪了一会儿，下一次或许就是 S。',
   B: '步调稳稳地穿过了五段星路，再快一点就能触到 A。',
   C: '每一颗星都被认真看见了，熟悉之后会走得更轻快。',
+}
+
+const INFINITE_RANK_COMMENTS = {
+  S: '保护星光已经留在身后，你仍然走进了更远的星图。',
+  A: '最高难度已经亮起，只差几步就能穿过保护线。',
+  B: '辨认的节奏已经成形，下一段星路会更加清晰。',
+  C: '这次先记住星星之间的差别，下一次会看得更快。',
 }
 
 function getIncompleteComment(completedRounds) {
@@ -50,10 +60,12 @@ function Game({ mode = 'finite', onExit }) {
   const [correctCardId, setCorrectCardId] = useState(null)
   const [feedback, setFeedback] = useState(null)
   const [result, setResult] = useState(null)
+  const [graceUsed, setGraceUsed] = useState(false)
   const transitionTimerRef = useRef(null)
   const feedbackTimerRef = useRef(null)
   const elapsedMsRef = useRef(0)
   const roundStartedAtRef = useRef(performance.now())
+  const graceUsedRef = useRef(false)
 
   const clearTimers = useCallback(() => {
     window.clearTimeout(transitionTimerRef.current)
@@ -64,23 +76,49 @@ function Game({ mode = 'finite', onExit }) {
 
   const handleExpire = useCallback(() => {
     const elapsedMs = elapsedMsRef.current + (performance.now() - roundStartedAtRef.current)
-    setResult({ type: 'timeout', elapsedMs })
+    setResult({
+      type: 'timeout',
+      elapsedMs,
+      rank: mode === 'infinite' ? getInfiniteRank(score) : undefined,
+    })
     setStatus('ended')
     setFeedback(null)
     setWrongCardId(null)
-  }, [])
+  }, [mode, score])
 
   const handleSelect = (card) => {
     if (status !== 'playing') return
 
     if (card.image.id !== round.target.id) {
+      if (mode === 'infinite') {
+        const graceState = getInfiniteGraceState(score + 1, graceUsedRef.current)
+
+        if (graceState !== 'available') {
+          clearTimers()
+          const elapsedMs = elapsedMsRef.current + (performance.now() - roundStartedAtRef.current)
+          setResult({ type: 'wrong', elapsedMs, rank: getInfiniteRank(score) })
+          setStatus('ended')
+          setFeedback(null)
+          setWrongCardId(null)
+          return
+        }
+
+        graceUsedRef.current = true
+        setGraceUsed(true)
+      }
+
       window.clearTimeout(feedbackTimerRef.current)
       setWrongCardId(card.cardId)
-      setFeedback({ type: 'wrong', message: '不是这一个，再找找！' })
+      setFeedback({
+        type: 'wrong',
+        message: mode === 'infinite'
+          ? '容错保护已消耗，再次点错将立即结束挑战！'
+          : '不是这一个，再找找！',
+      })
       feedbackTimerRef.current = window.setTimeout(() => {
         setWrongCardId(null)
         setFeedback(null)
-      }, 650)
+      }, mode === 'infinite' ? 1200 : 650)
       return
     }
 
@@ -121,6 +159,8 @@ function Game({ mode = 'finite', onExit }) {
     setRoundId((value) => value + 1)
     setStatus('playing')
     setResult(null)
+    setGraceUsed(false)
+    graceUsedRef.current = false
     elapsedMsRef.current = 0
     roundStartedAtRef.current = performance.now()
     setWrongCardId(null)
@@ -132,6 +172,7 @@ function Game({ mode = 'finite', onExit }) {
     const finalLevel = getLevel(score)
     const completedChallenge = mode === 'finite' && result?.type === 'completed'
     const failedChallenge = mode === 'finite' && result?.type === 'timeout'
+    const infiniteChallenge = mode === 'infinite'
 
     return (
       <main className="result-page">
@@ -146,7 +187,15 @@ function Game({ mode = 'finite', onExit }) {
             alt=""
             aria-hidden="true"
           />
-          <h1>{completedChallenge ? '挑战完成！' : failedChallenge ? '挑战未完成' : '时间到！'}</h1>
+          <h1>
+            {completedChallenge
+              ? '挑战完成！'
+              : failedChallenge
+                ? '挑战未完成'
+                : result?.type === 'wrong'
+                  ? '选错了，挑战结束'
+                  : '时间到！'}
+          </h1>
 
           {completedChallenge ? (
             <>
@@ -159,6 +208,24 @@ function Game({ mode = 'finite', onExit }) {
               <p className={`rank-comment rank-comment--${result.rank.toLowerCase()}`}>
                 <span aria-hidden="true">✦</span>
                 {RANK_COMMENTS[result.rank]}
+              </p>
+            </>
+          ) : infiniteChallenge ? (
+            <>
+              <p>{result?.type === 'wrong' ? '本次无尽挑战最终得分' : '倒计时结束，本次最终得分'}</p>
+              <strong className="final-score">{score}</strong>
+              <span className="final-score-label">
+                分 · 用时 {formatElapsedTime(result?.elapsedMs ?? 0)} 秒
+              </span>
+              <div className="infinite-result-badges">
+                <div className="level-badge">游戏等级 · Lv.{finalLevel}</div>
+                <div className={`rank-badge rank-badge--${result.rank.toLowerCase()}`}>
+                  无尽评级 · {result.rank}
+                </div>
+              </div>
+              <p className={`rank-comment rank-comment--${result.rank.toLowerCase()}`}>
+                <span aria-hidden="true">✦</span>
+                {INFINITE_RANK_COMMENTS[result.rank]}
               </p>
             </>
           ) : (
@@ -226,7 +293,12 @@ function Game({ mode = 'finite', onExit }) {
             ROUND {String(roundId + 1).padStart(2, '0')}
             {mode === 'finite' ? ` / ${FINITE_TOTAL_ROUNDS}` : ''}
           </span>
-          <span>{round.cards.length} 个候选</span>
+          <span className="board-heading-meta">
+            {mode === 'infinite' && (
+              <GraceStatus roundNumber={roundId + 1} graceUsed={graceUsed} />
+            )}
+            <span>{round.cards.length} 个候选</span>
+          </span>
         </div>
         <GameBoard
           key={roundId}
